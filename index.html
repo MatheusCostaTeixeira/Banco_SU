@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistema Bancário</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef2f3;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #2980b9;
+      color: white;
+    }
+    button {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      margin: 8px 5px 8px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1c5980;
+    }
+    #message {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 5px;
+      display: none;
+      font-weight: bold;
+    }
+    #message.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    #message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Sistema Bancário</h1>
+
+  <button id="btnCreate">Criar Conta</button>
+  <button id="btnDeposit">Depositar</button>
+  <button id="btnWithdraw">Sacar</button>
+  <button id="btnTransfer">Transferir</button>
+  <button id="btnDelete">Excluir Conta</button>
+
+  <table id="accountsTable">
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Nome</th>
+        <th>CPF</th>
+        <th>Idade</th>
+        <th>Sexo</th>
+        <th>Saldo (R$)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="message"></div>
+</div>
+
+<script>
+  // Código de autorização para liberar operações
+  const AUTH_CODE = "1234";
+
+  let accounts = [];
+
+  const messageBox = document.getElementById("message");
+  const tbody = document.querySelector("#accountsTable tbody");
+
+  function showMessage(text, type="success") {
+    messageBox.textContent = text;
+    messageBox.className = "";
+    messageBox.classList.add(type);
+    messageBox.style.display = "block";
+    setTimeout(() => { messageBox.style.display = "none"; }, 3500);
+  }
+
+  function renderAccounts() {
+    tbody.innerHTML = "";
+    accounts.forEach(acc => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${acc.numero}</td>
+        <td>${acc.nome}</td>
+        <td>${acc.cpf}</td>
+        <td>${acc.idade}</td>
+        <td>${acc.sexo}</td>
+        <td>${acc.saldo.toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function askAuth() {
+    const code = prompt("Digite o código de autorização:");
+    if (code === null) return false; // Cancelou
+    if (code !== AUTH_CODE) {
+      alert("Código incorreto! Operação cancelada.");
+      return false;
+    }
+    return true;
+  }
+
+  // Criar Conta
+  document.getElementById("btnCreate").addEventListener("click", () => {
+    const numero = prompt("Número da conta:");
+    if (!numero) return alert("Número da conta é obrigatório.");
+    if (accounts.find(acc => acc.numero === numero.trim())) {
+      return alert("Número de conta já existe.");
+    }
+    const nome = prompt("Nome do titular:");
+    if (!nome) return alert("Nome é obrigatório.");
+    const cpf = prompt("CPF:");
+    if (!cpf) return alert("CPF é obrigatório.");
+    const idade = prompt("Idade:");
+    if (!idade || isNaN(idade)) return alert("Idade inválida.");
+    const sexo = prompt("Sexo (M/F):");
+    if (!sexo || !["M","F","m","f"].includes(sexo)) return alert("Sexo inválido.");
+
+    accounts.push({
+      numero: numero.trim(),
+      nome: nome.trim(),
+      cpf: cpf.trim(),
+      idade: parseInt(idade),
+      sexo: sexo.toUpperCase(),
+      saldo: 0
+    });
+
+    showMessage("Conta criada com sucesso!");
+    renderAccounts();
+  });
+
+  // Depositar
+  document.getElementById("btnDeposit").addEventListener("click", () => {
+    if (!askAuth()) return;
+
+    const numero = prompt("Número da conta para depósito:");
+    if (!numero) return alert("Número da conta é obrigatório.");
+
+    const account = accounts.find(acc => acc.numero === numero.trim());
+    if (!account) return alert("Conta não encontrada.");
+
+    const valor = parseFloat(prompt("Valor para depositar:"));
+    if (isNaN(valor) || valor <= 0) return alert("Valor inválido.");
+
+    account.saldo += valor;
+    showMessage(`Depósito de R$ ${valor.toFixed(2)} realizado com sucesso!`);
+    renderAccounts();
+  });
+
+  // Sacar
+  document.getElementById("btnWithdraw").addEventListener("click", () => {
+    if (!askAuth()) return;
+
+    const numero = prompt("Número da conta para saque:");
+    if (!numero) return alert("Número da conta é obrigatório.");
+
+    const account = accounts.find(acc => acc.numero === numero.trim());
+    if (!account) return alert("Conta não encontrada.");
+
+    const valor = parseFloat(prompt("Valor para sacar:"));
+    if (isNaN(valor) || valor <= 0) return alert("Valor inválido.");
+    if (valor > account.saldo) return alert("Saldo insuficiente.");
+
+    account.saldo -= valor;
+    showMessage(`Saque de R$ ${valor.toFixed(2)} realizado com sucesso!`);
+    renderAccounts();
+  });
+
+  // Transferir
+  document.getElementById("btnTransfer").addEventListener("click", () => {
+    if (!askAuth()) return;
+
+    const origemNum = prompt("Número da conta origem:");
+    if (!origemNum) return alert("Número da conta origem é obrigatório.");
+
+    const origem = accounts.find(acc => acc.numero === origemNum.trim());
+    if (!origem) return alert("Conta origem não encontrada.");
+
+    const destinoNum = prompt("Número da conta destino:");
+    if (!destinoNum) return alert("Número da conta destino é obrigatório.");
+
+    const destino = accounts.find(acc => acc.numero === destinoNum.trim());
+    if (!destino) return alert("Conta destino não encontrada.");
+
+    const valor = parseFloat(prompt("Valor para transferir:"));
+    if (isNaN(valor) || valor <= 0) return alert("Valor inválido.");
+    if (valor > origem.saldo) return alert("Saldo insuficiente na conta origem.");
+
+    origem.saldo -= valor;
+    destino.saldo += valor;
+
+    showMessage(`Transferência de R$ ${valor.toFixed(2)} realizada com sucesso!`);
+    renderAccounts();
+  });
+
+  // Excluir Conta
+  document.getElementById("btnDelete").addEventListener("click", () => {
+    if (!askAuth()) return;
+
+    const numero = prompt("Número da conta para excluir:");
+    if (!numero) return alert("Número da conta é obrigatório.");
+
+    const index = accounts.findIndex(acc => acc.numero === numero.trim());
+    if (index === -1) return alert("Conta não encontrada.");
+
+    if (!confirm("Tem certeza que deseja excluir esta conta? Esta ação é irreversível.")) return;
+
+    accounts.splice(index, 1);
+    showMessage("Conta excluída com sucesso!");
+    renderAccounts();
+  });
+
+  // Inicializa
+  renderAccounts();
+</script>
+
+</body>
+</html>
